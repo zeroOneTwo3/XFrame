@@ -207,9 +207,19 @@ public partial class MainPageModel : ObservableObject
                 parent.SetAttributeValue("total", total.ToString("F2", CultureInfo.InvariantCulture));
             }
 
-            // We always output to the Result pane
-            TransformedResult = doc.ToString();
-            HasTransformedResult = true;
+            var settings = new XmlWriterSettings
+            {
+                Indent = true,
+                OmitXmlDeclaration = false
+            };
+
+            using var stringWriter = new StringWriter();
+            using (var writer = XmlWriter.Create(stringWriter, settings))
+            {
+                doc.Save(writer);
+            }
+
+            TransformedResult = stringWriter.ToString();
         }
         catch (Exception ex)
         {
