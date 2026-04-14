@@ -1,0 +1,8 @@
+<Solution>
+  <Folder Name="/Solution Items/">
+    <File Path=".editorconfig" />
+  </Folder>
+  <Project Path="XFrame.AppHost/XFrame.AppHost.csproj" />
+  <Project Path="XFrame.ServiceDefaults/XFrame.ServiceDefaults.csproj" />
+  <Project Path="XFrame/XFrame.csproj" />
+</Solution>
