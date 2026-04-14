@@ -83,7 +83,7 @@
             <Label Grid.Row="2" Text="XSLT Content" Style="{StaticResource Title3}" />
             <Border Grid.Row="3" StrokeShape="RoundRectangle 5" BackgroundColor="#F5F5F5">
                 <ScrollView Orientation="Both">
-                    <Editor Text="{Binding TransformedResult}" 
+                    <Editor Text="{Binding XsltContent}" 
                     IsReadOnly="True" 
                     FontFamily="Consolas" 
                     TextColor="DarkBlue"
@@ -96,7 +96,7 @@
             <Label Grid.Row="0" Text="Transformation Result" Style="{StaticResource Title3}" />
             <Border Grid.Row="1" StrokeShape="RoundRectangle 5" BackgroundColor="#F5F5F5">
                 <ScrollView Orientation="Both">
-                    <Editor Text="{Binding TransformedResult}" 
+                    <Editor Text="{Binding TransformedResult}"
                         IsReadOnly="True" 
                         FontFamily="Consolas" 
                         TextColor="DarkBlue"

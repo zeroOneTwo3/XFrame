@@ -1,6 +1,8 @@
+using CommunityToolkit.Maui.Storage;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using System.Globalization;
+using System.Text;
 using System.Xml;
 using System.Xml.Linq;
 using System.Xml.Xsl;
@@ -10,13 +12,13 @@ namespace XFrame.PageModels;
 public partial class MainPageModel : ObservableObject
 {
     [ObservableProperty]
-    private string rawXmlContent;
+    private string rawXmlContent = string.Empty;
 
     [ObservableProperty]
-    private string xsltContent;
+    private string xsltContent = string.Empty;
 
     [ObservableProperty]
-    private string transformedResult;
+    private string transformedResult = string.Empty;
 
     [ObservableProperty]
     private bool isBusy;
@@ -45,6 +47,13 @@ public partial class MainPageModel : ObservableObject
             { DevicePlatform.WinUI, new[] { ".xml", ".xslt", ".xsl" } },
             { DevicePlatform.MacCatalyst, new[] { "public.xml" } },
         });
+
+    private readonly IFileSaver _fileSaver;
+
+    public MainPageModel(IFileSaver fileSaver)
+    {
+        _fileSaver = fileSaver;
+    }
 
     [RelayCommand]
     private async Task SelectXmlAsync()
@@ -91,12 +100,12 @@ public partial class MainPageModel : ObservableObject
             transformer.Transform(xmlReader, null, resultsWriter);
 
             TransformedResult = resultsWriter.ToString();
-            OnPropertyChanged(nameof(HasTransformedResult));
+            HasTransformedResult = true;
         }
         catch (Exception ex)
         {
             TransformedResult = $"Error: {ex.Message}";
-            OnPropertyChanged(nameof(HasTransformedResult));
+            HasTransformedResult = false;
         }
         finally
         {
@@ -105,14 +114,36 @@ public partial class MainPageModel : ObservableObject
     }
 
     [RelayCommand]
-    private async Task ExportAsync()
+    private async Task ExportAsync(CancellationToken cancellationToken)
     {
-        // Simple export using local file system for Desktop
-        var path = Path.Combine(FileSystem.CacheDirectory, "transformed.xml");
-        await File.WriteAllTextAsync(path, TransformedResult);
+        if (string.IsNullOrWhiteSpace(TransformedResult))
+        {
+            await Shell.Current.DisplayAlertAsync("Empty", "Nothing to export. Run a transformation first.", "OK");
+            return;
+        }
 
-        await Shell.Current.DisplayAlertAsync("Exported", $"File saved to temporary location: {path}", "OK");
-        // Note: For a true 'Save As' dialog, use CommunityToolkit.Maui.Storage.FileSaver
+        try
+        {
+            // Convert the string to a stream for the FileSaver
+            using var stream = new MemoryStream(Encoding.UTF8.GetBytes(TransformedResult));
+
+            // This opens the native "Save As" dialog
+            var fileSaverResult = await _fileSaver.SaveAsync("transformed.xml", stream, cancellationToken);
+
+            if (fileSaverResult.IsSuccessful)
+            {
+                await Shell.Current.DisplayAlertAsync("Success", $"File saved: {fileSaverResult.FilePath}", "OK");
+            }
+            else
+            {
+                // This triggers if the user cancels the dialog
+                System.Diagnostics.Debug.WriteLine("Export cancelled by user.");
+            }
+        }
+        catch (Exception ex)
+        {
+            await Shell.Current.DisplayAlertAsync("Export Error", ex.Message, "OK");
+        }
     }
 
     [RelayCommand]
@@ -145,14 +176,14 @@ public partial class MainPageModel : ObservableObject
     }
 
     [RelayCommand]
-    private void GenericSum()
+    private async Task GenericSum()
     {
         // Determine which string to parse
         string sourceContent = SelectedSource == "Raw XML" ? RawXmlContent : TransformedResult;
 
         if (string.IsNullOrWhiteSpace(sourceContent))
         {
-            Shell.Current.DisplayAlert("Error", "Selected source is empty.", "OK");
+            await Shell.Current.DisplayAlertAsync("Error", "Selected source is empty.", "OK");
             return;
         }
 
@@ -167,7 +198,7 @@ public partial class MainPageModel : ObservableObject
                 double total = parent.Elements(TargetChildTag)
                     .Select(child =>
                     {
-                        string attrVal = (string)child.Attribute(TargetAttribute) ?? "0";
+                        string attrVal = (string?)child.Attribute(TargetAttribute) ?? "0";
                         attrVal = attrVal.Replace(',', '.');
                         return double.TryParse(attrVal, NumberStyles.Any, CultureInfo.InvariantCulture, out double d) ? d : 0;
                     })
@@ -178,17 +209,20 @@ public partial class MainPageModel : ObservableObject
 
             // We always output to the Result pane
             TransformedResult = doc.ToString();
-            OnPropertyChanged(nameof(HasTransformedResult));
+            HasTransformedResult = true;
         }
         catch (Exception ex)
         {
-            Shell.Current.DisplayAlert("Engine Error", ex.Message, "OK");
+            await Shell.Current.DisplayAlertAsync("Generic Sum Error", ex.Message, "OK");
         }
-        finally { IsBusy = false; }
+        finally
+        { 
+            IsBusy = false;
+        }
     }
 
     [RelayCommand]
-    private void ScanTags()
+    private async Task ScanTags()
     {
         string sourceContent = SelectedSource == "Raw XML" ? RawXmlContent : TransformedResult;
         if (string.IsNullOrWhiteSpace(sourceContent)) return;
@@ -200,8 +234,11 @@ public partial class MainPageModel : ObservableObject
 
             // Quick debug output or you could bind this to a dropdown
             string tagsFound = string.Join(", ", allTags);
-            Shell.Current.DisplayAlert("Tags Found", tagsFound, "OK");
+            await Shell.Current.DisplayAlertAsync("Tags Found", tagsFound, "OK");
         }
-        catch { /* Invalid XML */ }
+        catch(Exception ex)
+        {
+            await Shell.Current.DisplayAlertAsync("Error", ex.Message, "OK");
+        }
     }
 }
