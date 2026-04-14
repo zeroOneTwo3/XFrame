@@ -2,7 +2,6 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using System.Xml;
 using System.Xml.Xsl;
-using XFrame.Models;
 
 namespace XFrame.PageModels;
 
@@ -98,7 +97,36 @@ public partial class MainPageModel : ObservableObject
         var path = Path.Combine(FileSystem.CacheDirectory, "transformed.xml");
         await File.WriteAllTextAsync(path, TransformedResult);
 
-        await Shell.Current.DisplayAlert("Exported", $"File saved to temporary location: {path}", "OK");
+        await Shell.Current.DisplayAlertAsync("Exported", $"File saved to temporary location: {path}", "OK");
         // Note: For a true 'Save As' dialog, use CommunityToolkit.Maui.Storage.FileSaver
+    }
+
+    [RelayCommand]
+    private async Task Appearing()
+    {
+        // Only load samples if the editor is currently empty
+        if (string.IsNullOrWhiteSpace(RawXmlContent))
+        {
+            await LoadSamplesAsync();
+        }
+    }
+
+    public async Task LoadSamplesAsync()
+    {
+        try
+        {
+            // OpenAppPackageFileAsync reads directly from Resources/Raw
+            using var xmlStream = await FileSystem.OpenAppPackageFileAsync("sample.xml");
+            using var xmlReader = new StreamReader(xmlStream);
+            RawXmlContent = await xmlReader.ReadToEndAsync();
+
+            using var xsltStream = await FileSystem.OpenAppPackageFileAsync("transform.xslt");
+            using var xsltReader = new StreamReader(xsltStream);
+            XsltContent = await xsltReader.ReadToEndAsync();
+        }
+        catch (Exception ex)
+        {
+            await Shell.Current.DisplayAlertAsync("Error", $"Could not load sample files. {ex.Message}", "OK");
+        }
     }
 }

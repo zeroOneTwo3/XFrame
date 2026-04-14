@@ -16,10 +16,10 @@ public static class MauiProgram
             .ConfigureMauiHandlers(handlers =>
             {
 #if WINDOWS
-				Microsoft.Maui.Controls.Handlers.Items.CollectionViewHandler.Mapper.AppendToMapping("KeyboardAccessibleCollectionView", (handler, view) =>
-				{
-					handler.PlatformView.SingleSelectionFollowsFocus = false;
-				});
+                Microsoft.Maui.Controls.Handlers.Items.CollectionViewHandler.Mapper.AppendToMapping("KeyboardAccessibleCollectionView", (handler, view) =>
+                {
+                    handler.PlatformView.SingleSelectionFollowsFocus = false;
+                });
 #endif
             })
             .ConfigureFonts(fonts =>

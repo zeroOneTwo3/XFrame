@@ -1,6 +1,4 @@
-﻿using Microsoft.Extensions.DependencyInjection;
-
-namespace XFrame;
+﻿namespace XFrame;
 
 public partial class App : Application
 {

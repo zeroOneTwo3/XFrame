@@ -1,7 +1,4 @@
-﻿using XFrame.Models;
-using XFrame.PageModels;
-
-namespace XFrame.Pages;
+﻿namespace XFrame.Pages;
 
 public partial class MainPage : ContentPage
 {
