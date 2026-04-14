@@ -1,6 +1,8 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using System.Globalization;
 using System.Xml;
+using System.Xml.Linq;
 using System.Xml.Xsl;
 
 namespace XFrame.PageModels;
@@ -21,6 +23,18 @@ public partial class MainPageModel : ObservableObject
 
     [ObservableProperty]
     private bool hasTransformedResult;
+
+    [ObservableProperty]
+    private string targetParentTag = "Employee";
+
+    [ObservableProperty]
+    private string targetChildTag = "salary";
+
+    [ObservableProperty]
+    private string targetAttribute = "amount";
+
+    [ObservableProperty]
+    private string selectedSource = "Raw XML";
 
     // Define the XML file type for all platforms
     private readonly FilePickerFileType xmlFileType = new FilePickerFileType(
@@ -128,5 +142,66 @@ public partial class MainPageModel : ObservableObject
         {
             await Shell.Current.DisplayAlertAsync("Error", $"Could not load sample files. {ex.Message}", "OK");
         }
+    }
+
+    [RelayCommand]
+    private void GenericSum()
+    {
+        // Determine which string to parse
+        string sourceContent = SelectedSource == "Raw XML" ? RawXmlContent : TransformedResult;
+
+        if (string.IsNullOrWhiteSpace(sourceContent))
+        {
+            Shell.Current.DisplayAlert("Error", "Selected source is empty.", "OK");
+            return;
+        }
+
+        IsBusy = true;
+        try
+        {
+            var doc = XDocument.Parse(sourceContent);
+            var parents = doc.Descendants(TargetParentTag);
+
+            foreach (var parent in parents)
+            {
+                double total = parent.Elements(TargetChildTag)
+                    .Select(child =>
+                    {
+                        string attrVal = (string)child.Attribute(TargetAttribute) ?? "0";
+                        attrVal = attrVal.Replace(',', '.');
+                        return double.TryParse(attrVal, NumberStyles.Any, CultureInfo.InvariantCulture, out double d) ? d : 0;
+                    })
+                    .Sum();
+
+                parent.SetAttributeValue("total", total.ToString("F2", CultureInfo.InvariantCulture));
+            }
+
+            // We always output to the Result pane
+            TransformedResult = doc.ToString();
+            OnPropertyChanged(nameof(HasTransformedResult));
+        }
+        catch (Exception ex)
+        {
+            Shell.Current.DisplayAlert("Engine Error", ex.Message, "OK");
+        }
+        finally { IsBusy = false; }
+    }
+
+    [RelayCommand]
+    private void ScanTags()
+    {
+        string sourceContent = SelectedSource == "Raw XML" ? RawXmlContent : TransformedResult;
+        if (string.IsNullOrWhiteSpace(sourceContent)) return;
+
+        try
+        {
+            var doc = XDocument.Parse(sourceContent);
+            var allTags = doc.Descendants().Select(x => x.Name.LocalName).Distinct().ToList();
+
+            // Quick debug output or you could bind this to a dropdown
+            string tagsFound = string.Join(", ", allTags);
+            Shell.Current.DisplayAlert("Tags Found", tagsFound, "OK");
+        }
+        catch { /* Invalid XML */ }
     }
 }

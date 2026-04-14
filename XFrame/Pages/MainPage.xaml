@@ -13,55 +13,101 @@
             Command="{Binding Source={x:Reference self}, Path=BindingContext.AppearingCommand}" />
     </ContentPage.Behaviors>
 
-    <Grid RowDefinitions="Auto, *" ColumnDefinitions="*, *" Padding="10" ColumnSpacing="10" RowSpacing="10">
+    <Grid RowDefinitions="Auto, Auto, *" ColumnDefinitions="*, *" Padding="10" ColumnSpacing="15" RowSpacing="10">
 
         <HorizontalStackLayout Grid.Row="0" Grid.ColumnSpan="2" Spacing="10">
-            <Button Text="Select XML" 
-            Command="{Binding SelectXmlCommand}" />
-            <Button Text="Select XSLT" 
-            Command="{Binding SelectXsltCommand}" />
-            <Button Text="Transform" 
-            Command="{Binding TransformCommand}" 
-            BackgroundColor="{StaticResource Primary}"
-            TextColor="White" />
-            <Button Text="Export Result" 
-            Command="{Binding ExportCommand}" 
-            IsEnabled="{Binding HasResult}" />
+            <Button Text="Select XML" Command="{Binding SelectXmlCommand}" />
+            <Button Text="Select XSLT" Command="{Binding SelectXsltCommand}" />
+            <Button Text="Transform" Command="{Binding TransformCommand}" 
+                BackgroundColor="{StaticResource Primary}" TextColor="White" />
+            <Button Text="Export Result" Command="{Binding ExportCommand}" 
+                IsEnabled="{Binding HasTransformedResult}" />
         </HorizontalStackLayout>
 
-        <VerticalStackLayout Grid.Row="1" Grid.Column="0" Spacing="5">
-            <Label Text="Source Editor" Style="{StaticResource Title3}" />
+        <Border Grid.Row="1" Grid.ColumnSpan="2" Margin="0,5" Padding="10" 
+           BackgroundColor="{AppThemeBinding Light=#F0F0F0, Dark=#333333}"
+           StrokeShape="RoundRectangle 5">
+            <Grid ColumnDefinitions="Auto, *, Auto" ColumnSpacing="15">
+                <HorizontalStackLayout Spacing="10" VerticalOptions="Center">
+                    <Label Text="Select Source:" 
+                           VerticalOptions="Center" 
+                           FontAttributes="Bold" />
 
-            <Border StrokeShape="RoundRectangle 5" StrokeThickness="1">
-                <Editor Text="{Binding RawXmlContent, Mode=TwoWay}" 
-                        Placeholder="Select or paste XML here..."
-                        HeightRequest="300" 
-                        FontFamily="Consolas" 
-                        AutoSize="Disabled" />
+                    <Picker WidthRequest="180"
+                            VerticalOptions="Center"
+                            SelectedItem="{Binding SelectedSource}">
+                        <Picker.ItemsSource>
+                            <x:Array Type="{x:Type x:String}">
+                                <x:String>Raw XML</x:String>
+                                <x:String>Transformed Result</x:String>
+                            </x:Array>
+                        </Picker.ItemsSource>
+                    </Picker>
+                </HorizontalStackLayout>
+
+                <HorizontalStackLayout Grid.Column="1" Spacing="10" VerticalOptions="Center" HorizontalOptions="Center">
+                    <VerticalStackLayout>
+                        <Label Text="Parent Tag" FontSize="10" />
+                        <Entry Text="{Binding TargetParentTag}" Placeholder="Employee" WidthRequest="120" />
+                    </VerticalStackLayout>
+                    <VerticalStackLayout>
+                        <Label Text="Child Tag" FontSize="10" />
+                        <Entry Text="{Binding TargetChildTag}" Placeholder="salary" WidthRequest="120" />
+                    </VerticalStackLayout>
+                    <VerticalStackLayout>
+                        <Label Text="Attribute" FontSize="10" />
+                        <Entry Text="{Binding TargetAttribute}" Placeholder="amount" WidthRequest="100" />
+                    </VerticalStackLayout>
+                </HorizontalStackLayout>
+
+                <HorizontalStackLayout Grid.Column="2" Spacing="5" VerticalOptions="Center">
+                    <Button Text="Scan Tags" Command="{Binding ScanTagsCommand}" 
+                        BackgroundColor="Gray" TextColor="White" />
+                    <Button Text="Run Sum" Command="{Binding GenericSumCommand}" 
+                        BackgroundColor="{StaticResource Primary}" TextColor="White" />
+                </HorizontalStackLayout>
+            </Grid>
+        </Border>
+
+        <Grid Grid.Row="2" Grid.Column="0" RowDefinitions="Auto, *, Auto, *">
+            <Label Grid.Row="0" Text="Source XML" Style="{StaticResource Title3}" />
+            <Border Grid.Row="1" StrokeShape="RoundRectangle 5" StrokeThickness="1" Margin="0,0,0,10">
+                <ScrollView Orientation="Both">
+                    <Editor Text="{Binding RawXmlContent, Mode=TwoWay}" 
+                    Placeholder="Select or paste XML here..."
+                    AutoSize="TextChanges"
+                    FontFamily="Consolas" />
+                </ScrollView>
             </Border>
 
-            <Label Text="XSLT Content" Style="{StaticResource Title3}" Margin="0,10,0,0" />
-            <Border StrokeShape="RoundRectangle 5" StrokeThickness="1">
-                <Editor Text="{Binding XsltContent, Mode=TwoWay}" 
-                        Placeholder="Select or paste XSLT here..."
-                        HeightRequest="200" 
-                        FontFamily="Consolas" />
-            </Border>
-        </VerticalStackLayout>
-
-        <Grid Grid.Row="1" Grid.Column="1" RowDefinitions="Auto, *">
-            <Label Grid.Row="0" Text="Transformation Result" Style="{StaticResource Title3}" />
-
-            <Border Grid.Row="1" StrokeShape="RoundRectangle 5" BackgroundColor="#F5F5F5">
-                <Editor Text="{Binding TransformedResult}" 
-                        IsReadOnly="True" 
-                        FontFamily="Consolas" 
-                        TextColor="DarkBlue" />
+            <Label Grid.Row="2" Text="XSLT Content" Style="{StaticResource Title3}" />
+            <Border Grid.Row="3" StrokeShape="RoundRectangle 5" BackgroundColor="#F5F5F5">
+                <ScrollView Orientation="Both">
+                    <Editor Text="{Binding TransformedResult}" 
+                    IsReadOnly="True" 
+                    FontFamily="Consolas" 
+                    TextColor="DarkBlue"
+                    AutoSize="TextChanges" />
+                </ScrollView>
             </Border>
         </Grid>
 
-        <ActivityIndicator Grid.Row="1" Grid.ColumnSpan="2" 
-                           IsRunning="{Binding IsBusy}" 
-                           VerticalOptions="Center" HorizontalOptions="Center" />
+        <Grid Grid.Row="2" Grid.Column="1" RowDefinitions="Auto, *">
+            <Label Grid.Row="0" Text="Transformation Result" Style="{StaticResource Title3}" />
+            <Border Grid.Row="1" StrokeShape="RoundRectangle 5" BackgroundColor="#F5F5F5">
+                <ScrollView Orientation="Both">
+                    <Editor Text="{Binding TransformedResult}" 
+                        IsReadOnly="True" 
+                        FontFamily="Consolas" 
+                        TextColor="DarkBlue"
+                        AutoSize="TextChanges" />
+                </ScrollView>
+            </Border>
+        </Grid>
+
+        <ActivityIndicator Grid.Row="2" Grid.ColumnSpan="2" 
+                   IsRunning="{Binding IsBusy}" 
+                   VerticalOptions="Center" HorizontalOptions="Center" />
+
     </Grid>
 </ContentPage>
