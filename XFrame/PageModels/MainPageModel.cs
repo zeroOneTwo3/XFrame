@@ -200,17 +200,21 @@ public partial class MainPageModel : ObservableObject
         try
         {
             var doc = XDocument.Parse(sourceContent);
-            var parents = doc.Descendants(TargetParentTag);
+            var targetNode = doc.Descendants(TargetParentTag).FirstOrDefault();
+            if (targetNode == null)
+            {
+                _notificationService.HandleError($"No '{TargetParentTag}' tags found in the selected source.", "Generic Sum Error");
+                return;
+            }
 
-            foreach (var parent in parents)
+            var targetNodes = targetNode.Parent == null 
+                ? [ targetNode ] 
+                : targetNode.Parent.Elements();
+
+            foreach (var parent in targetNodes)
             {
                 double total = parent.Elements(TargetChildTag)
-                    .Select(child =>
-                    {
-                        string attrVal = (string?)child.Attribute(TargetAttribute) ?? "0";
-                        attrVal = attrVal.Replace(',', '.');
-                        return double.TryParse(attrVal, NumberStyles.Any, CultureInfo.InvariantCulture, out double d) ? d : 0;
-                    })
+                    .Select(child => ParseAmount((string?)child.Attribute(TargetAttribute) ?? "0"))
                     .Sum();
 
                 parent.SetAttributeValue("total", total.ToString("F2", CultureInfo.InvariantCulture));
@@ -241,6 +245,22 @@ public partial class MainPageModel : ObservableObject
         { 
             IsBusy = false;
         }
+    }
+
+    private double ParseAmount(string val)
+    {
+        if (!char.IsDigit(val.First()))
+            return 0;
+
+        val = val.Replace(',', '.');
+        // Try parsing with invariant culture first
+        if (double.TryParse(val, NumberStyles.Any, CultureInfo.InvariantCulture, out double result))
+            return result;
+        // If that fails, try the current culture (handles comma/dot issues)
+        if (double.TryParse(val, NumberStyles.Any, CultureInfo.CurrentCulture, out result))
+            return result;
+        // If both fail, return 0 or throw an error
+        return 0;
     }
 
     [RelayCommand]
