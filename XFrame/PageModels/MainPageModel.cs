@@ -213,11 +213,15 @@ public partial class MainPageModel : ObservableObject
 
             foreach (var parent in targetNodes)
             {
-                double total = parent.Elements(TargetChildTag)
-                    .Select(child => ParseAmount((string?)child.Attribute(TargetAttribute) ?? "0"))
-                    .Sum();
+                //  Only add the 'total' attribute if we actually found children with the specified attribute
+                if (parent.Elements(TargetChildTag).Any(e => e.Attribute(TargetAttribute) != null))
+                {
+                    double total = parent.Elements(TargetChildTag)
+                        .Select(child => ParseAmount((string?)child.Attribute(TargetAttribute)))
+                        .Sum();
 
-                parent.SetAttributeValue("total", total.ToString("F2", CultureInfo.InvariantCulture));
+                    parent.SetAttributeValue("total", total.ToString("F2", CultureInfo.InvariantCulture));
+                }
             }
 
             var settings = new XmlWriterSettings
@@ -247,18 +251,21 @@ public partial class MainPageModel : ObservableObject
         }
     }
 
-    private double ParseAmount(string val)
+    private double ParseAmount(string? val)
     {
-        if (!char.IsDigit(val.First()))
+        var input = val?.Trim();
+        if (string.IsNullOrWhiteSpace(input) || !char.IsDigit(input.First()))
             return 0;
 
-        val = val.Replace(',', '.');
+        input = input.Replace(',', '.');
         // Try parsing with invariant culture first
-        if (double.TryParse(val, NumberStyles.Any, CultureInfo.InvariantCulture, out double result))
+        if (double.TryParse(input, NumberStyles.Any, CultureInfo.InvariantCulture, out double result))
             return result;
+
         // If that fails, try the current culture (handles comma/dot issues)
-        if (double.TryParse(val, NumberStyles.Any, CultureInfo.CurrentCulture, out result))
+        if (double.TryParse(input, NumberStyles.Any, CultureInfo.CurrentCulture, out result))
             return result;
+
         // If both fail, return 0 or throw an error
         return 0;
     }
