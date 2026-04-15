@@ -71,7 +71,7 @@
 
         <Grid Grid.Row="2" Grid.Column="0" RowDefinitions="Auto, *, Auto, *">
             <Label Grid.Row="0" Text="Source XML" Style="{StaticResource Title3}" />
-            <Border Grid.Row="1" StrokeShape="RoundRectangle 5" StrokeThickness="1" Margin="0,0,0,10">
+            <Border Grid.Row="1" StrokeShape="RoundRectangle 5" BackgroundColor="#F5F5F5">
                 <ScrollView Orientation="Both">
                     <Editor Text="{Binding RawXmlContent, Mode=TwoWay}" 
                     Placeholder="Select or paste XML here..."
@@ -83,7 +83,7 @@
             <Label Grid.Row="2" Text="XSLT Content" Style="{StaticResource Title3}" />
             <Border Grid.Row="3" StrokeShape="RoundRectangle 5" BackgroundColor="#F5F5F5">
                 <ScrollView Orientation="Both">
-                    <Editor Text="{Binding XsltContent}" 
+                    <Editor Text="{Binding XsltContent, Mode=TwoWay}" 
                     IsReadOnly="True" 
                     FontFamily="Consolas" 
                     TextColor="DarkBlue"
@@ -96,7 +96,7 @@
             <Label Grid.Row="0" Text="Transformation Result" Style="{StaticResource Title3}" />
             <Border Grid.Row="1" StrokeShape="RoundRectangle 5" BackgroundColor="#F5F5F5">
                 <ScrollView Orientation="Both">
-                    <Editor Text="{Binding TransformedResult}"
+                    <Editor Text="{Binding TransformedResult, Mode=TwoWay}"
                         IsReadOnly="True" 
                         FontFamily="Consolas" 
                         TextColor="DarkBlue"

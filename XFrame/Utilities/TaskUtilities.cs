@@ -10,7 +10,7 @@ public static class TaskUtilities
     /// </summary>
     /// <param name="task">Task to Fire and Forget.</param>
     /// <param name="handler">Error Handler.</param>
-    public static async void FireAndForgetSafeAsync(this Task task, IErrorHandler? handler = null)
+    public static async void FireAndForgetSafeAsync(this Task task, INotificationService? handler = null)
     {
         try
         {

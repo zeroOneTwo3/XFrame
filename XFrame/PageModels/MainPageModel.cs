@@ -50,9 +50,12 @@ public partial class MainPageModel : ObservableObject
 
     private readonly IFileSaver _fileSaver;
 
-    public MainPageModel(IFileSaver fileSaver)
+    private readonly INotificationService _notificationService;
+
+    public MainPageModel(IFileSaver fileSaver, INotificationService notificationService)
     {
         _fileSaver = fileSaver;
+        _notificationService = notificationService;
     }
 
     [RelayCommand]
@@ -82,7 +85,7 @@ public partial class MainPageModel : ObservableObject
     }
 
     [RelayCommand]
-    private void Transform()
+    private async Task TransformAsync()
     {
         if (string.IsNullOrWhiteSpace(RawXmlContent) || string.IsNullOrWhiteSpace(XsltContent))
             return;
@@ -90,21 +93,27 @@ public partial class MainPageModel : ObservableObject
         IsBusy = true;
         try
         {
-            using var xmlReader = XmlReader.Create(new StringReader(RawXmlContent));
-            using var xsltReader = XmlReader.Create(new StringReader(XsltContent));
+            // Offload CPU-heavy XSLT work to a background thread
+            await Task.Run(() =>
+            {
+                using var xmlReader = XmlReader.Create(new StringReader(RawXmlContent));
+                using var xsltReader = XmlReader.Create(new StringReader(XsltContent));
 
-            var transformer = new XslCompiledTransform();
-            transformer.Load(xsltReader);
+                var transformer = new XslCompiledTransform();
+                transformer.Load(xsltReader);
 
-            using var resultsWriter = new StringWriter();
-            transformer.Transform(xmlReader, null, resultsWriter);
+                using var resultsWriter = new StringWriter();
+                transformer.Transform(xmlReader, null, resultsWriter);
 
-            TransformedResult = resultsWriter.ToString();
-            HasTransformedResult = true;
+                // Update the UI properties
+                TransformedResult = resultsWriter.ToString();
+                HasTransformedResult = true;
+            });
         }
         catch (Exception ex)
         {
-            TransformedResult = $"Error: {ex.Message}";
+            TransformedResult = string.Empty;
+            _notificationService.HandleError(ex, "Transformation Error");
             HasTransformedResult = false;
         }
         finally
@@ -114,11 +123,11 @@ public partial class MainPageModel : ObservableObject
     }
 
     [RelayCommand]
-    private async Task ExportAsync(CancellationToken cancellationToken)
+    private async Task ExportAsync(CancellationToken ct)
     {
         if (string.IsNullOrWhiteSpace(TransformedResult))
         {
-            await Shell.Current.DisplayAlertAsync("Empty", "Nothing to export. Run a transformation first.", "OK");
+            _notificationService.HandleError("Nothing to export. Run a transformation first.", "Export Error");
             return;
         }
 
@@ -128,11 +137,11 @@ public partial class MainPageModel : ObservableObject
             using var stream = new MemoryStream(Encoding.UTF8.GetBytes(TransformedResult));
 
             // This opens the native "Save As" dialog
-            var fileSaverResult = await _fileSaver.SaveAsync("transformed.xml", stream, cancellationToken);
+            var fileSaverResult = await _fileSaver.SaveAsync("transformed.xml", stream, ct);
 
             if (fileSaverResult.IsSuccessful)
             {
-                await Shell.Current.DisplayAlertAsync("Success", $"File saved: {fileSaverResult.FilePath}", "OK");
+                await _notificationService.ShowSuccessAsync($"File saved: {fileSaverResult.FilePath}", ct);
             }
             else
             {
@@ -142,12 +151,12 @@ public partial class MainPageModel : ObservableObject
         }
         catch (Exception ex)
         {
-            await Shell.Current.DisplayAlertAsync("Export Error", ex.Message, "OK");
+            _notificationService.HandleError(ex, "Export Error");
         }
     }
 
     [RelayCommand]
-    private async Task Appearing()
+    private async Task AppearingAsync()
     {
         // Only load samples if the editor is currently empty
         if (string.IsNullOrWhiteSpace(RawXmlContent))
@@ -171,19 +180,19 @@ public partial class MainPageModel : ObservableObject
         }
         catch (Exception ex)
         {
-            await Shell.Current.DisplayAlertAsync("Error", $"Could not load sample files. {ex.Message}", "OK");
+            _notificationService.HandleError(ex, "Load Samples Error");
         }
     }
 
     [RelayCommand]
-    private async Task GenericSum()
+    private async Task GenericSumAsync(CancellationToken ct)
     {
         // Determine which string to parse
         string sourceContent = SelectedSource == "Raw XML" ? RawXmlContent : TransformedResult;
 
         if (string.IsNullOrWhiteSpace(sourceContent))
         {
-            await Shell.Current.DisplayAlertAsync("Error", "Selected source is empty.", "OK");
+            _notificationService.HandleError("Selected source is empty.", "Generic Sum Error");
             return;
         }
 
@@ -220,10 +229,13 @@ public partial class MainPageModel : ObservableObject
             }
 
             TransformedResult = stringWriter.ToString();
+            HasTransformedResult = true;
+            await _notificationService.ShowSuccessAsync($"Generic sum was added for {TargetParentTag} tag.", ct);
         }
         catch (Exception ex)
         {
-            await Shell.Current.DisplayAlertAsync("Generic Sum Error", ex.Message, "OK");
+            HasTransformedResult = false;
+            _notificationService.HandleError(ex, "Generic Sum Error");
         }
         finally
         { 
@@ -232,7 +244,7 @@ public partial class MainPageModel : ObservableObject
     }
 
     [RelayCommand]
-    private async Task ScanTags()
+    private async Task ScanTagsAsync()
     {
         string sourceContent = SelectedSource == "Raw XML" ? RawXmlContent : TransformedResult;
         if (string.IsNullOrWhiteSpace(sourceContent)) return;
@@ -241,14 +253,13 @@ public partial class MainPageModel : ObservableObject
         {
             var doc = XDocument.Parse(sourceContent);
             var allTags = doc.Descendants().Select(x => x.Name.LocalName).Distinct().ToList();
-
-            // Quick debug output or you could bind this to a dropdown
             string tagsFound = string.Join(", ", allTags);
-            await Shell.Current.DisplayAlertAsync("Tags Found", tagsFound, "OK");
+
+            await Shell.Current.DisplayAlertAsync("Tags Found", tagsFound, "OK"); //TODO
         }
         catch(Exception ex)
         {
-            await Shell.Current.DisplayAlertAsync("Error", ex.Message, "OK");
+            _notificationService.HandleError(ex, "Tags Error");
         }
     }
 }

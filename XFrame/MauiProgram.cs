@@ -12,7 +12,7 @@ public static class MauiProgram
         var builder = MauiApp.CreateBuilder();
         builder
             .UseMauiApp<App>()
-            .UseMauiCommunityToolkit()
+            .UseMauiCommunityToolkit(options => options.SetShouldEnableSnackbarOnWindows(true))
             .ConfigureSyncfusionToolkit()
             .ConfigureMauiHandlers(handlers =>
             {
@@ -37,7 +37,7 @@ public static class MauiProgram
 #endif
 
         builder.Services.AddSingleton(FileSaver.Default);
-        builder.Services.AddSingleton<ModalErrorHandler>();
+        builder.Services.AddSingleton<INotificationService, UiNotificationService>();
         builder.Services.AddSingleton<MainPageModel>();
 
         return builder.Build();
