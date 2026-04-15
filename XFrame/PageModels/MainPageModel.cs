@@ -39,7 +39,7 @@ public partial class MainPageModel : ObservableObject
     private string selectedSource = "Raw XML";
 
     // Define the XML file type for all platforms
-    private readonly FilePickerFileType xmlFileType = new FilePickerFileType(
+    private static readonly FilePickerFileType xmlFileType = new FilePickerFileType(
         new Dictionary<DevicePlatform, IEnumerable<string>>
         {
             { DevicePlatform.iOS, new[] { "public.xml" } },
@@ -47,6 +47,12 @@ public partial class MainPageModel : ObservableObject
             { DevicePlatform.WinUI, new[] { ".xml", ".xslt", ".xsl" } },
             { DevicePlatform.MacCatalyst, new[] { "public.xml" } },
         });
+
+    private static readonly XmlWriterSettings xmlWriterSettings = new XmlWriterSettings
+    {
+        Indent = true,
+        OmitXmlDeclaration = false
+    };
 
     private readonly IFileSaver _fileSaver;
 
@@ -199,46 +205,16 @@ public partial class MainPageModel : ObservableObject
         IsBusy = true;
         try
         {
-            var doc = XDocument.Parse(sourceContent);
-            var targetNode = doc.Descendants(TargetParentTag).FirstOrDefault();
-            if (targetNode == null)
+            var modifiedXmlString = await Task.Run(() => ProcessXmlSum(sourceContent));
+            if (modifiedXmlString == null)
             {
                 _notificationService.HandleError($"No '{TargetParentTag}' tags found in the selected source.", "Generic Sum Error");
                 return;
             }
 
-            var targetNodes = targetNode.Parent == null 
-                ? [ targetNode ] 
-                : targetNode.Parent.Elements();
-
-            foreach (var parent in targetNodes)
-            {
-                //  Only add the 'total' attribute if we actually found children with the specified attribute
-                if (parent.Elements(TargetChildTag).Any(e => e.Attribute(TargetAttribute) != null))
-                {
-                    double total = parent.Elements(TargetChildTag)
-                        .Select(child => ParseAmount((string?)child.Attribute(TargetAttribute)))
-                        .Sum();
-
-                    parent.SetAttributeValue("total", total.ToString("F2", CultureInfo.InvariantCulture));
-                }
-            }
-
-            var settings = new XmlWriterSettings
-            {
-                Indent = true,
-                OmitXmlDeclaration = false
-            };
-
-            using var stringWriter = new StringWriter();
-            using (var writer = XmlWriter.Create(stringWriter, settings))
-            {
-                doc.Save(writer);
-            }
-
-            TransformedResult = stringWriter.ToString();
+            TransformedResult = modifiedXmlString;
             HasTransformedResult = true;
-            await _notificationService.ShowSuccessAsync($"Generic sum was added for {TargetParentTag} tag.", ct);
+            await _notificationService.ShowSuccessAsync($"Generic sum was added to the {TargetParentTag} tag.", ct);
         }
         catch (Exception ex)
         {
@@ -249,6 +225,41 @@ public partial class MainPageModel : ObservableObject
         { 
             IsBusy = false;
         }
+    }
+
+    private string? ProcessXmlSum(string sourceContent)
+    {
+        var doc = XDocument.Parse(sourceContent);
+        var targetNode = doc.Descendants(TargetParentTag).FirstOrDefault();
+        if (targetNode == null)
+        {
+            return null;
+        }
+
+        var targetNodes = targetNode.Parent == null
+            ? [targetNode]
+            : targetNode.Parent.Elements();
+
+        foreach (var parent in targetNodes)
+        {
+            //  Only add the 'total' attribute if we actually found children with the specified attribute
+            if (parent.Elements(TargetChildTag).Any(e => e.Attribute(TargetAttribute) != null))
+            {
+                double total = parent.Elements(TargetChildTag)
+                    .Select(child => ParseAmount((string?)child.Attribute(TargetAttribute)))
+                    .Sum();
+
+                parent.SetAttributeValue("total", total.ToString("F2", CultureInfo.InvariantCulture));
+            }
+        }
+
+        using var stringWriter = new StringWriter();
+        using (var writer = XmlWriter.Create(stringWriter, xmlWriterSettings))
+        {
+            doc.Save(writer);
+        }
+
+        return stringWriter.ToString();
     }
 
     private double ParseAmount(string? val)
