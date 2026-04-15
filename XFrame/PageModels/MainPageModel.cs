@@ -44,7 +44,16 @@ public partial class MainPageModel : ObservableObject
         {
             { DevicePlatform.iOS, new[] { "public.xml" } },
             { DevicePlatform.Android, new[] { "application/xml", "text/xml" } },
-            { DevicePlatform.WinUI, new[] { ".xml", ".xslt", ".xsl" } },
+            { DevicePlatform.WinUI, new[] { ".xml" } },
+            { DevicePlatform.MacCatalyst, new[] { "public.xml" } },
+        });
+
+    private static readonly FilePickerFileType xsltFileType = new FilePickerFileType(
+        new Dictionary<DevicePlatform, IEnumerable<string>>
+        {
+            { DevicePlatform.iOS, new[] { "public.xml", "com.netscape.javascript-source" } }, // iOS can be picky with XSLT UIs
+            { DevicePlatform.Android, new[] { "application/xml", "text/xml", "text/plain" } },
+            { DevicePlatform.WinUI, new[] { ".xslt", ".xsl" } },
             { DevicePlatform.MacCatalyst, new[] { "public.xml" } },
         });
 
@@ -70,7 +79,7 @@ public partial class MainPageModel : ObservableObject
         var result = await FilePicker.Default.PickAsync(new PickOptions
         {
             PickerTitle = "Select XML",
-            FileTypes = xmlFileType // Use the custom type here
+            FileTypes = xmlFileType
         });
 
         if (result != null)
@@ -83,7 +92,7 @@ public partial class MainPageModel : ObservableObject
         var result = await FilePicker.Default.PickAsync(new PickOptions
         {
             PickerTitle = "Select XML",
-            FileTypes = xmlFileType // Use the custom type here
+            FileTypes = xsltFileType
         });
 
         if (result != null)
@@ -289,13 +298,21 @@ public partial class MainPageModel : ObservableObject
 
         try
         {
-            var doc = XDocument.Parse(sourceContent);
-            var allTags = doc.Descendants().Select(x => x.Name.LocalName).Distinct().ToList();
-            string tagsFound = string.Join(", ", allTags);
+            var allTags = new HashSet<string>();
+            await Task.Run(() => {
+                using var reader = XmlReader.Create(new StringReader(sourceContent));
+                while (reader.Read())
+                {
+                    if (reader.NodeType == XmlNodeType.Element)
+                        allTags.Add(reader.Name);
+                }
+            });
 
-            await Shell.Current.DisplayAlertAsync("Tags Found", tagsFound, "OK"); //TODO
+            string tagsFound = string.Join(", ", allTags);
+            // TODO
+            await Shell.Current.DisplayAlertAsync("Tags Found", tagsFound, "OK");
         }
-        catch(Exception ex)
+        catch (Exception ex)
         {
             _notificationService.HandleError(ex, "Tags Error");
         }
