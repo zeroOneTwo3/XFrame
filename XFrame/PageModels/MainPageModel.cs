@@ -109,32 +109,41 @@ public partial class MainPageModel : ObservableObject
         try
         {
             // Offload CPU-heavy XSLT work to a background thread
-            await Task.Run(() =>
+            var transformedXml = await Task.Run(() => TransformXml());
+            if (transformedXml == null)
             {
-                using var xmlReader = XmlReader.Create(new StringReader(RawXmlContent));
-                using var xsltReader = XmlReader.Create(new StringReader(XsltContent));
+                _notificationService.HandleError("Empty transformation result", "XSLT Transformation Error");
+                return;
+            }
 
-                var transformer = new XslCompiledTransform();
-                transformer.Load(xsltReader);
-
-                using var resultsWriter = new StringWriter();
-                transformer.Transform(xmlReader, null, resultsWriter);
-
-                // Update the UI properties
-                TransformedResult = resultsWriter.ToString();
-                HasTransformedResult = true;
-            });
+            // Update the UI properties
+            TransformedResult = transformedXml;
+            HasTransformedResult = true;
         }
         catch (Exception ex)
         {
             TransformedResult = string.Empty;
-            _notificationService.HandleError(ex, "Transformation Error");
+            _notificationService.HandleError(ex, "XSLT Transformation Error");
             HasTransformedResult = false;
         }
         finally
         {
             IsBusy = false;
         }
+    }
+
+    private string? TransformXml()
+    {
+        using var xmlReader = XmlReader.Create(new StringReader(RawXmlContent));
+        using var xsltReader = XmlReader.Create(new StringReader(XsltContent));
+
+        var transformer = new XslCompiledTransform();
+        transformer.Load(xsltReader);
+
+        using var resultsWriter = new StringWriter();
+        transformer.Transform(xmlReader, null, resultsWriter);
+
+        return resultsWriter.ToString();
     }
 
     [RelayCommand]
@@ -214,6 +223,7 @@ public partial class MainPageModel : ObservableObject
         IsBusy = true;
         try
         {
+            // Offload CPU-heavy XML work to a background thread
             var modifiedXmlString = await Task.Run(() => ProcessXmlSum(sourceContent));
             if (modifiedXmlString == null)
             {
