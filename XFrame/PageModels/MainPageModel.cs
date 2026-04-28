@@ -36,43 +36,36 @@ public partial class MainPageModel : ObservableObject
     [ObservableProperty]
     private string selectedSource = "Raw XML";
 
-    private readonly IFileSaver _fileSaver;
-
     private readonly INotificationService _notificationService;
 
     private readonly IXmlProcessorService _xmlProcessorService;
 
-    public MainPageModel(IFileSaver fileSaver, INotificationService notificationService, IXmlProcessorService xmlProcessorService)
+    private readonly IFileService _fileService;
+
+    public MainPageModel(
+        INotificationService notificationService,
+        IXmlProcessorService xmlProcessorService,
+        IFileService fileService)
     {
-        _fileSaver = fileSaver;
         _notificationService = notificationService;
         _xmlProcessorService = xmlProcessorService;
+        _fileService = fileService;
     }
 
     [RelayCommand]
     private async Task SelectXmlAsync()
     {
-        var result = await FilePicker.Default.PickAsync(new PickOptions
-        {
-            PickerTitle = "Select XML",
-            FileTypes = FileTypes.Xml
-        });
-
-        if (result != null)
-            RawXmlContent = await File.ReadAllTextAsync(result.FullPath);
+        var content = await _fileService.PickAndReadTextAsync(FileTypes.Xml);
+        if (content != null)
+            RawXmlContent = content;
     }
 
     [RelayCommand]
     private async Task SelectXsltAsync()
     {
-        var result = await FilePicker.Default.PickAsync(new PickOptions
-        {
-            PickerTitle = "Select XML",
-            FileTypes = FileTypes.Xslt
-        });
-
-        if (result != null)
-            XsltContent = await File.ReadAllTextAsync(result.FullPath);
+        var content = await _fileService.PickAndReadTextAsync(FileTypes.Xslt);
+        if (content != null)
+            XsltContent = content;
     }
 
     [RelayCommand]
@@ -119,21 +112,16 @@ public partial class MainPageModel : ObservableObject
 
         try
         {
-            // Convert the string to a stream for the FileSaver
-            using var stream = new MemoryStream(Encoding.UTF8.GetBytes(TransformedResult));
+            var result = await _fileService.SavePickAsync("transformed.xml", TransformedResult, ct);
 
-            // This opens the native "Save As" dialog
-            var fileSaverResult = await _fileSaver.SaveAsync("transformed.xml", stream, ct);
-
-            if (fileSaverResult.IsSuccessful)
+            if (result.IsSuccessful)
             {
-                await _notificationService.ShowSuccessAsync($"File saved: {fileSaverResult.FilePath}", ct);
+                await _notificationService.ShowSuccessAsync($"File saved: {result.FilePath}", ct);
             }
-            else
-            {
-                // This triggers if the user cancels the dialog
-                System.Diagnostics.Debug.WriteLine("Export cancelled by user.");
-            }
+        }
+        catch (OperationCanceledException)
+        {
+            System.Diagnostics.Debug.WriteLine("Export cancelled.");
         }
         catch (Exception ex)
         {
@@ -155,14 +143,8 @@ public partial class MainPageModel : ObservableObject
     {
         try
         {
-            // OpenAppPackageFileAsync reads directly from Resources/Raw
-            using var xmlStream = await FileSystem.OpenAppPackageFileAsync("sample.xml");
-            using var xmlReader = new StreamReader(xmlStream);
-            RawXmlContent = await xmlReader.ReadToEndAsync();
-
-            using var xsltStream = await FileSystem.OpenAppPackageFileAsync("transform.xslt");
-            using var xsltReader = new StreamReader(xsltStream);
-            XsltContent = await xsltReader.ReadToEndAsync();
+            RawXmlContent = await _fileService.ReadAssetAsync("sample.xml");
+            XsltContent = await _fileService.ReadAssetAsync("transform.xslt");
         }
         catch (Exception ex)
         {

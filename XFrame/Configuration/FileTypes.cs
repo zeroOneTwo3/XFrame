@@ -1,7 +1,13 @@
 ﻿namespace XFrame.Configuration
 {
+    /// <summary>
+    /// File Picker file types for the application.
+    /// </summary>
     public static class FileTypes
     {
+        /// <summary>
+        /// Xml file type definition for file picking operations on different platforms.
+        /// </summary>
         public static readonly FilePickerFileType Xml = new FilePickerFileType(
             new Dictionary<DevicePlatform, IEnumerable<string>>
             {
@@ -11,6 +17,9 @@
             { DevicePlatform.MacCatalyst, new[] { "public.xml" } },
             });
 
+        /// <summary>
+        /// Xslt file type definition for file picking operations on different platforms.
+        /// </summary>
         public static readonly FilePickerFileType Xslt = new FilePickerFileType(
             new Dictionary<DevicePlatform, IEnumerable<string>>
             {
