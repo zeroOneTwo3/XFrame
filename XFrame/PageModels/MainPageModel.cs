@@ -2,6 +2,7 @@ using CommunityToolkit.Maui.Storage;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using System.Text;
+using XFrame.Configuration;
 using XFrame.Core.Interfaces;
 
 namespace XFrame.PageModels;
@@ -35,25 +36,6 @@ public partial class MainPageModel : ObservableObject
     [ObservableProperty]
     private string selectedSource = "Raw XML";
 
-    // Define the XML file type for all platforms
-    private static readonly FilePickerFileType xmlFileType = new FilePickerFileType(
-        new Dictionary<DevicePlatform, IEnumerable<string>>
-        {
-            { DevicePlatform.iOS, new[] { "public.xml" } },
-            { DevicePlatform.Android, new[] { "application/xml", "text/xml" } },
-            { DevicePlatform.WinUI, new[] { ".xml" } },
-            { DevicePlatform.MacCatalyst, new[] { "public.xml" } },
-        });
-
-    private static readonly FilePickerFileType xsltFileType = new FilePickerFileType(
-        new Dictionary<DevicePlatform, IEnumerable<string>>
-        {
-            { DevicePlatform.iOS, new[] { "public.xml", "com.netscape.javascript-source" } }, // iOS can be picky with XSLT UIs
-            { DevicePlatform.Android, new[] { "application/xml", "text/xml", "text/plain" } },
-            { DevicePlatform.WinUI, new[] { ".xslt", ".xsl" } },
-            { DevicePlatform.MacCatalyst, new[] { "public.xml" } },
-        });
-
     private readonly IFileSaver _fileSaver;
 
     private readonly INotificationService _notificationService;
@@ -73,7 +55,7 @@ public partial class MainPageModel : ObservableObject
         var result = await FilePicker.Default.PickAsync(new PickOptions
         {
             PickerTitle = "Select XML",
-            FileTypes = xmlFileType
+            FileTypes = FileTypes.Xml
         });
 
         if (result != null)
@@ -86,7 +68,7 @@ public partial class MainPageModel : ObservableObject
         var result = await FilePicker.Default.PickAsync(new PickOptions
         {
             PickerTitle = "Select XML",
-            FileTypes = xsltFileType
+            FileTypes = FileTypes.Xslt
         });
 
         if (result != null)
