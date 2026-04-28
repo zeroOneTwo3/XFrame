@@ -40,6 +40,8 @@ Non-Intrusive Feedback: Success notifications are delivered via native Toasts/Sn
 
 - XFrame: The primary .NET MAUI project containing ViewModels and XAML Views.
 
+- XFrame.Core: Contains the business logic and definitions that are completely independent of any UI framework.
+
 - XFrame.AppHost: The .NET Aspire orchestration project that manages the app lifecycle and provides the developer dashboard.
 
 - XFrame.ServiceDefaults: Shared configurations for OpenTelemetry, resilience, and service discovery.
@@ -67,7 +69,9 @@ cd XFrame
 Set Startup Project: In Visual Studio, right-click the XFrame.AppHost project and select Set as Startup Project.
 
 Run the Orchestrator: Press F5.
+
 This will launch:
+
 - The Aspire Dashboard (accessible via browser).
 - The XFrame Desktop App.
 
