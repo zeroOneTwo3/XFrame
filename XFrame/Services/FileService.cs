@@ -41,7 +41,19 @@ namespace XFrame.Services
         /// <inheritdoc />
         public async Task<FileSaveResult> SavePickAsync(string defaultFileName, string content, CancellationToken ct)
         {
-            using var stream = new MemoryStream(Encoding.UTF8.GetBytes(content));
+            // Write to a stream for IFileSaver more efficiently or use a Pooled Buffer to avoid GC pressure.
+            using var stream = new MemoryStream();
+
+            // Use a StreamWriter to write the string directly into the stream 
+            // without creating an intermediate byte[] via GetBytes().
+            using (var writer = new StreamWriter(stream, Encoding.UTF8, bufferSize: 4096, leaveOpen: true))
+            {
+                await writer.WriteAsync(content);
+                await writer.FlushAsync();
+            }
+
+            // Reset position so the FileSaver reads from the beginning
+            stream.Position = 0;
 
             var result = await _fileSaver.SaveAsync(defaultFileName, stream, ct);
 
