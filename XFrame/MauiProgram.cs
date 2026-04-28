@@ -2,6 +2,8 @@
 using CommunityToolkit.Maui.Storage;
 using Microsoft.Extensions.Logging;
 using Syncfusion.Maui.Toolkit.Hosting;
+using XFrame.Core.Interfaces;
+using XFrame.Core.Services;
 
 namespace XFrame;
 
@@ -35,7 +37,7 @@ public static class MauiProgram
         builder.Logging.AddDebug();
         builder.Services.AddLogging(configure => configure.AddDebug());
 #endif
-
+        builder.Services.AddSingleton<IXmlProcessorService, XmlProcessorService>();
         builder.Services.AddSingleton(FileSaver.Default);
         builder.Services.AddSingleton<INotificationService, UiNotificationService>();
         builder.Services.AddSingleton<MainPageModel>();

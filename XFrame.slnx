@@ -3,6 +3,7 @@
     <File Path=".editorconfig" />
   </Folder>
   <Project Path="XFrame.AppHost/XFrame.AppHost.csproj" />
+  <Project Path="XFrame.Core/XFrame.Core.csproj" />
   <Project Path="XFrame.ServiceDefaults/XFrame.ServiceDefaults.csproj" />
   <Project Path="XFrame/XFrame.csproj" />
 </Solution>

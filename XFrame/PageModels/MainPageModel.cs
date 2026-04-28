@@ -1,11 +1,8 @@
 using CommunityToolkit.Maui.Storage;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using System.Globalization;
 using System.Text;
-using System.Xml;
-using System.Xml.Linq;
-using System.Xml.Xsl;
+using XFrame.Core.Interfaces;
 
 namespace XFrame.PageModels;
 
@@ -57,20 +54,17 @@ public partial class MainPageModel : ObservableObject
             { DevicePlatform.MacCatalyst, new[] { "public.xml" } },
         });
 
-    private static readonly XmlWriterSettings xmlWriterSettings = new XmlWriterSettings
-    {
-        Indent = true,
-        OmitXmlDeclaration = false
-    };
-
     private readonly IFileSaver _fileSaver;
 
     private readonly INotificationService _notificationService;
 
-    public MainPageModel(IFileSaver fileSaver, INotificationService notificationService)
+    private readonly IXmlProcessorService _xmlProcessorService;
+
+    public MainPageModel(IFileSaver fileSaver, INotificationService notificationService, IXmlProcessorService xmlProcessorService)
     {
         _fileSaver = fileSaver;
         _notificationService = notificationService;
+        _xmlProcessorService = xmlProcessorService;
     }
 
     [RelayCommand]
@@ -109,7 +103,7 @@ public partial class MainPageModel : ObservableObject
         try
         {
             // Offload CPU-heavy XSLT work to a background thread
-            var transformedXml = await Task.Run(() => TransformXml());
+            var transformedXml = await Task.Run(() => _xmlProcessorService.Transform(RawXmlContent, XsltContent));
             if (transformedXml == null)
             {
                 _notificationService.HandleError("Empty transformation result", "XSLT Transformation Error");
@@ -130,20 +124,6 @@ public partial class MainPageModel : ObservableObject
         {
             IsBusy = false;
         }
-    }
-
-    private string? TransformXml()
-    {
-        using var xmlReader = XmlReader.Create(new StringReader(RawXmlContent));
-        using var xsltReader = XmlReader.Create(new StringReader(XsltContent));
-
-        var transformer = new XslCompiledTransform();
-        transformer.Load(xsltReader);
-
-        using var resultsWriter = new StringWriter();
-        transformer.Transform(xmlReader, null, resultsWriter);
-
-        return resultsWriter.ToString();
     }
 
     [RelayCommand]
@@ -224,7 +204,12 @@ public partial class MainPageModel : ObservableObject
         try
         {
             // Offload CPU-heavy XML work to a background thread
-            var modifiedXmlString = await Task.Run(() => ProcessXmlSum(sourceContent));
+            var modifiedXmlString = await Task.Run(() => _xmlProcessorService.ProcessXmlSum(
+                sourceContent,
+                TargetParentTag,
+                TargetChildTag,
+                TargetAttribute));
+
             if (modifiedXmlString == null)
             {
                 _notificationService.HandleError($"No '{TargetParentTag}' tags found in the selected source.", "Generic Sum Error");
@@ -241,63 +226,9 @@ public partial class MainPageModel : ObservableObject
             _notificationService.HandleError(ex, "Generic Sum Error");
         }
         finally
-        { 
+        {
             IsBusy = false;
         }
-    }
-
-    private string? ProcessXmlSum(string sourceContent)
-    {
-        var doc = XDocument.Parse(sourceContent);
-        var targetNode = doc.Descendants(TargetParentTag).FirstOrDefault();
-        if (targetNode == null)
-        {
-            return null;
-        }
-
-        var targetNodes = targetNode.Parent == null
-            ? [targetNode]
-            : targetNode.Parent.Elements();
-
-        foreach (var parent in targetNodes)
-        {
-            //  Only add the 'total' attribute if we actually found children with the specified attribute
-            if (parent.Elements(TargetChildTag).Any(e => e.Attribute(TargetAttribute) != null))
-            {
-                double total = parent.Elements(TargetChildTag)
-                    .Select(child => ParseAmount((string?)child.Attribute(TargetAttribute)))
-                    .Sum();
-
-                parent.SetAttributeValue("total", total.ToString("F2", CultureInfo.InvariantCulture));
-            }
-        }
-
-        using var stringWriter = new StringWriter();
-        using (var writer = XmlWriter.Create(stringWriter, xmlWriterSettings))
-        {
-            doc.Save(writer);
-        }
-
-        return stringWriter.ToString();
-    }
-
-    private double ParseAmount(string? val)
-    {
-        var input = val?.Trim();
-        if (string.IsNullOrWhiteSpace(input) || !char.IsDigit(input.First()))
-            return 0;
-
-        input = input.Replace(',', '.');
-        // Try parsing with invariant culture first
-        if (double.TryParse(input, NumberStyles.Any, CultureInfo.InvariantCulture, out double result))
-            return result;
-
-        // If that fails, try the current culture (handles comma/dot issues)
-        if (double.TryParse(input, NumberStyles.Any, CultureInfo.CurrentCulture, out result))
-            return result;
-
-        // If both fail, return 0 or throw an error
-        return 0;
     }
 
     [RelayCommand]
@@ -308,17 +239,9 @@ public partial class MainPageModel : ObservableObject
 
         try
         {
-            var allTags = new HashSet<string>();
-            await Task.Run(() => {
-                using var reader = XmlReader.Create(new StringReader(sourceContent));
-                while (reader.Read())
-                {
-                    if (reader.NodeType == XmlNodeType.Element)
-                        allTags.Add(reader.Name);
-                }
-            });
-
+            var allTags = await Task.Run(() => _xmlProcessorService.GetUniqueTags(sourceContent));
             string tagsFound = string.Join(", ", allTags);
+
             // TODO
             await Shell.Current.DisplayAlertAsync("Tags Found", tagsFound, "OK");
         }
