@@ -74,8 +74,10 @@ public partial class MainPageModel : ObservableObject
         if (string.IsNullOrWhiteSpace(RawXmlContent) || string.IsNullOrWhiteSpace(XsltContent))
             return;
 
-        IsBusy = true;
-        try
+        TransformedResult = string.Empty;
+        HasTransformedResult = false;
+
+        await ExecuteBusyActionAsync(async () =>
         {
             // Offload CPU-heavy XSLT work to a background thread
             var transformedXml = await Task.Run(() => _xmlProcessorService.Transform(RawXmlContent, XsltContent));
@@ -88,17 +90,7 @@ public partial class MainPageModel : ObservableObject
             // Update the UI properties
             TransformedResult = transformedXml;
             HasTransformedResult = true;
-        }
-        catch (Exception ex)
-        {
-            TransformedResult = string.Empty;
-            _notificationService.HandleError(ex, "XSLT Transformation Error");
-            HasTransformedResult = false;
-        }
-        finally
-        {
-            IsBusy = false;
-        }
+        }, "Transformation Failed");
     }
 
     [RelayCommand]
@@ -110,7 +102,7 @@ public partial class MainPageModel : ObservableObject
             return;
         }
 
-        try
+        await ExecuteBusyActionAsync(async () =>
         {
             var result = await _fileService.SavePickAsync("transformed.xml", TransformedResult, ct);
 
@@ -118,15 +110,7 @@ public partial class MainPageModel : ObservableObject
             {
                 await _notificationService.ShowSuccessAsync($"File saved: {result.FilePath}", ct);
             }
-        }
-        catch (OperationCanceledException)
-        {
-            System.Diagnostics.Debug.WriteLine("Export cancelled.");
-        }
-        catch (Exception ex)
-        {
-            _notificationService.HandleError(ex, "Export Error");
-        }
+        }, "Export Error");
     }
 
     [RelayCommand]
@@ -164,8 +148,10 @@ public partial class MainPageModel : ObservableObject
             return;
         }
 
-        IsBusy = true;
-        try
+        TransformedResult = string.Empty;
+        HasTransformedResult = false;
+
+        await ExecuteBusyActionAsync(async () =>
         {
             // Offload CPU-heavy XML work to a background thread
             var modifiedXmlString = await Task.Run(() => _xmlProcessorService.ProcessXmlSum(
@@ -183,16 +169,8 @@ public partial class MainPageModel : ObservableObject
             TransformedResult = modifiedXmlString;
             HasTransformedResult = true;
             await _notificationService.ShowSuccessAsync($"Generic sum was added to the {TargetParentTag} tag.", ct);
-        }
-        catch (Exception ex)
-        {
-            HasTransformedResult = false;
-            _notificationService.HandleError(ex, "Generic Sum Error");
-        }
-        finally
-        {
-            IsBusy = false;
-        }
+
+        }, "Generic Sum Error");
     }
 
     [RelayCommand]
@@ -212,6 +190,36 @@ public partial class MainPageModel : ObservableObject
         catch (Exception ex)
         {
             _notificationService.HandleError(ex, "Tags Error");
+        }
+    }
+
+    private async Task ExecuteBusyActionAsync(Func<Task> action, string errorCaption = "Error")
+    {
+        if (IsBusy)
+            return;
+
+        IsBusy = true;
+
+        try
+        {
+            await action();
+        }
+        catch (OperationCanceledException)
+        {
+            // User cancelled (e.g., closed a file picker) - usually silent
+            System.Diagnostics.Debug.WriteLine("Action was cancelled.");
+        }
+        catch (Exception ex)
+        {
+            // Centralized error handling
+            _notificationService.HandleError(ex, errorCaption);
+
+            // Log to telemetry/debug if needed
+            System.Diagnostics.Debug.WriteLine($"[BusyAction Error]: {ex.Message}");
+        }
+        finally
+        {
+            IsBusy = false;
         }
     }
 }
