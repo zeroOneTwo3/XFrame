@@ -48,12 +48,13 @@ namespace XFrame.Core.Services
             return stringWriter.ToString();
         }
 
-        public IEnumerable<string> GetUniqueTags(string xml)
+        public IEnumerable<string> GetUniqueTags(string xml, CancellationToken ct)
         {
             var allTags = new HashSet<string>();
             using var reader = XmlReader.Create(new StringReader(xml));
             while (reader.Read())
             {
+                ct.ThrowIfCancellationRequested();
                 if (reader.NodeType == XmlNodeType.Element)
                     allTags.Add(reader.Name);
             }

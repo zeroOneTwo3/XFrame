@@ -1,7 +1,5 @@
-using CommunityToolkit.Maui.Storage;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using System.Text;
 using XFrame.Configuration;
 using XFrame.Core.Interfaces;
 
@@ -137,11 +135,8 @@ public partial class MainPageModel : ObservableObject
     }
 
     [RelayCommand]
-    private async Task GenericSumAsync(CancellationToken ct)
+    private async Task GenericSumAsync(string? sourceContent, CancellationToken ct)
     {
-        // Determine which string to parse
-        string sourceContent = SelectedSource == "Raw XML" ? RawXmlContent : TransformedResult;
-
         if (string.IsNullOrWhiteSpace(sourceContent))
         {
             _notificationService.HandleError("Selected source is empty.", "Generic Sum Error");
@@ -174,14 +169,14 @@ public partial class MainPageModel : ObservableObject
     }
 
     [RelayCommand]
-    private async Task ScanTagsAsync()
+    private async Task ScanTagsAsync(string? sourceContent, CancellationToken ct)
     {
-        string sourceContent = SelectedSource == "Raw XML" ? RawXmlContent : TransformedResult;
-        if (string.IsNullOrWhiteSpace(sourceContent)) return;
+        if (string.IsNullOrWhiteSpace(sourceContent))
+            return;
 
         try
         {
-            var allTags = await Task.Run(() => _xmlProcessorService.GetUniqueTags(sourceContent));
+            var allTags = await Task.Run(() => _xmlProcessorService.GetUniqueTags(sourceContent, ct));
             string tagsFound = string.Join(", ", allTags);
 
             // TODO

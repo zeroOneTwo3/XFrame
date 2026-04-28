@@ -61,10 +61,45 @@
                 </HorizontalStackLayout>
 
                 <HorizontalStackLayout Grid.Column="2" Spacing="5" VerticalOptions="Center">
-                    <Button Text="Scan Tags" Command="{Binding ScanTagsCommand}" 
-                        BackgroundColor="Gray" TextColor="White" />
-                    <Button Text="Run Sum" Command="{Binding GenericSumCommand}" 
-                        BackgroundColor="{StaticResource Primary}" TextColor="White" />
+                    <Button Text="Scan Tags" 
+                            Command="{Binding ScanTagsCommand}" 
+                            BackgroundColor="Gray" TextColor="White">
+                        <Button.Triggers>
+                            <DataTrigger TargetType="Button" 
+                                         Binding="{Binding SelectedSource}" 
+                                         Value="Raw XML">
+                                <Setter Property="CommandParameter" 
+                                        Value="{Binding Source={x:Reference SourceXmlEditor}, Path=Text}" />
+                            </DataTrigger>
+
+                            <DataTrigger TargetType="Button" 
+                                         Binding="{Binding SelectedSource}" 
+                                         Value="Transformed Result">
+                                <Setter Property="CommandParameter" 
+                                        Value="{Binding Source={x:Reference ResultXmlEditor}, Path=Text}" />
+                            </DataTrigger>
+                        </Button.Triggers>
+                    </Button>
+
+                    <Button Text="Run Sum" 
+                            Command="{Binding GenericSumCommand}"
+                            BackgroundColor="{StaticResource Primary}" TextColor="White">
+                        <Button.Triggers>
+                            <DataTrigger TargetType="Button" 
+                                         Binding="{Binding SelectedSource}" 
+                                         Value="Raw XML">
+                                <Setter Property="CommandParameter" 
+                                        Value="{Binding Source={x:Reference SourceXmlEditor}, Path=Text}" />
+                            </DataTrigger>
+
+                            <DataTrigger TargetType="Button" 
+                                         Binding="{Binding SelectedSource}" 
+                                         Value="Transformed Result">
+                                <Setter Property="CommandParameter" 
+                                        Value="{Binding Source={x:Reference ResultXmlEditor}, Path=Text}" />
+                            </DataTrigger>
+                        </Button.Triggers>
+                    </Button>
                 </HorizontalStackLayout>
             </Grid>
         </Border>
@@ -76,7 +111,8 @@
                     <Editor Text="{Binding RawXmlContent, Mode=TwoWay}" 
                     Placeholder="Select or paste XML here..."
                     AutoSize="TextChanges"
-                    FontFamily="Consolas" />
+                    FontFamily="Consolas"
+                    x:Name="SourceXmlEditor" />
                 </ScrollView>
             </Border>
 
@@ -100,7 +136,8 @@
                         IsReadOnly="True" 
                         FontFamily="Consolas" 
                         TextColor="DarkBlue"
-                        AutoSize="TextChanges" />
+                        AutoSize="TextChanges"
+                        x:Name="ResultXmlEditor" />
                 </ScrollView>
             </Border>
         </Grid>
