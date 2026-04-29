@@ -6,6 +6,7 @@ using XFrame.Core.Interfaces;
 
 namespace XFrame.Core.Services
 {
+    /// <inheritdoc />
     public class XmlProcessorService : IXmlProcessorService
     {
         private static readonly XmlWriterSettings xmlWriterSettings = new XmlWriterSettings
@@ -13,7 +14,9 @@ namespace XFrame.Core.Services
             Indent = true,
             OmitXmlDeclaration = false
         };
-        public string ProcessXmlSum(string xml, string parentTag, string childTag, string attribute)
+
+        /// <inheritdoc />
+        public string? ProcessXmlSum(string xml, string parentTag, string childTag, string attribute)
         {
             var doc = XDocument.Parse(xml);
             var targetNode = doc.Descendants(parentTag).FirstOrDefault();
@@ -48,6 +51,7 @@ namespace XFrame.Core.Services
             return stringWriter.ToString();
         }
 
+        /// <inheritdoc />
         public IEnumerable<string> GetUniqueTags(string xml, CancellationToken ct)
         {
             var allTags = new HashSet<string>();
@@ -62,6 +66,7 @@ namespace XFrame.Core.Services
             return allTags;
         }
 
+        /// <inheritdoc />
         public string Transform(string xml, string xslt)
         {
             using var xmlReader = XmlReader.Create(new StringReader(xml));
@@ -76,22 +81,33 @@ namespace XFrame.Core.Services
             return resultsWriter.ToString();
         }
 
+        /// <summary>
+        /// Parses a string into a double, handling various cultural formats 
+        /// and common XML data inconsistencies.
+        /// </summary>
+        /// <param name="val">The string value to parse.</param>
+        /// <returns>The parsed double value, or 0 if parsing fails.</returns>
         private double ParseAmount(string? val)
         {
-            var input = val?.Trim();
-            if (string.IsNullOrWhiteSpace(input) || !char.IsDigit(input.First()))
+            if (string.IsNullOrWhiteSpace(val))
                 return 0;
 
-            input = input.Replace(',', '.');
-            // Try parsing with invariant culture first
+            var input = val.Trim();
+
+            // Try Invariant Culture (usually the standard for XML/Data). Invariant expects '.' as decimal
             if (double.TryParse(input, NumberStyles.Any, CultureInfo.InvariantCulture, out double result))
                 return result;
 
-            // If that fails, try the current culture (handles comma/dot issues)
+            // Try Current Culture (user's local Windows/Phone settings)
             if (double.TryParse(input, NumberStyles.Any, CultureInfo.CurrentCulture, out result))
                 return result;
 
-            // If both fail, return 0 or throw an error
+            // Last Resort: Handle cases where data might have "wrong" separators (try manual cleaning).
+            var cleanedInput = input.Replace(',', '.');
+            if (double.TryParse(cleanedInput, NumberStyles.Any, CultureInfo.InvariantCulture, out result))
+                return result;
+
+            System.Diagnostics.Debug.WriteLine($"[Parser]: Failed to parse '{val}'");
             return 0;
         }
     }

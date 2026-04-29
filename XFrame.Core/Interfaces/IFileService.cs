@@ -10,30 +10,34 @@ namespace XFrame.Core.Interfaces
     public interface IFileService
     {
         /// <summary>
-        /// For picking a file from the device
+        /// Launches a platform-specific file picker to read the contents of a text file.
         /// </summary>
-        /// <param name="filePickerFileType">File Picker with file type</param>
+        /// <param name="filePickerFileType">The platform-specific file type filter.</param>
+        /// <returns>The text content of the file, or null if the operation was cancelled.</returns>
         Task<string?> PickAndReadTextAsync(object filePickerFileType);
 
         /// <summary>
-        /// For reading sample files
+        /// Reads the content of a file bundled within the application package (assets).
         /// </summary>
-        /// <param name="fileName">The name of the file</param>
+        /// <param name="fileName">The name/path of the asset file.</param>
+        /// <returns>The text content of the asset.</returns>
         Task<string> ReadAssetAsync(string fileName);
 
         /// <summary>
-        /// For saving (optional, could also replace _fileSaver)
+        /// Persists text content to a file at a platform-specific location.
         /// </summary>
-        /// <param name="fileName">The name of the file</param>
-        /// <param name="content">The file content</param>
+        /// <param name="fileName">The desired name of the file, including extension.</param>
+        /// <param name="content">The raw string data to be written to the file using UTF-8 encoding.</param>
+        /// <returns>A <see cref="Task"/> representing the asynchronous save operation.</returns>
         Task SaveTextAsync(string fileName, string content);
 
         /// <summary>
-        /// Returns a result object containing Success status and FilePath
+        /// Launches a "Save As" dialog and streams the provided content to the selected destination.
         /// </summary>
-        /// <param name="defaultFileName">The name of the file</param>
-        /// <param name="content">The file content</param>
-        /// <param name="ct">The cancellation token</param>
+        /// <param name="defaultFileName">The suggested filename for the export.</param>
+        /// <param name="content">The string content to be saved.</param>
+        /// <param name="ct">Cancellation token to abort the save operation.</param>
+        /// <returns>A <see cref="FileSaveResult"/> containing the success status and the final file path.</returns>
         Task<FileSaveResult> SavePickAsync(string defaultFileName, string content, CancellationToken ct);
     }
 }
