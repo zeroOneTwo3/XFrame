@@ -87,24 +87,27 @@ namespace XFrame.Core.Services
         /// </summary>
         /// <param name="val">The string value to parse.</param>
         /// <returns>The parsed double value, or 0 if parsing fails.</returns>
-        private double ParseAmount(string? val)
+        internal double ParseAmount(string? val)
         {
             if (string.IsNullOrWhiteSpace(val))
                 return 0;
 
-            var input = val.Trim();
+            // Remove underscores immediately - they are purely visual
+            var input = val.Trim().Replace("_", string.Empty);
 
-            // Try Invariant Culture (usually the standard for XML/Data). Invariant expects '.' as decimal
+            // Force a "Neutral" format for the first attempt.
+            // If the string contains a comma but NO dot, it's likely a European decimal.
+            if (input.Contains(',') && !input.Contains('.'))
+            {
+                input = input.Replace(',', '.');
+            }
+
+            // Try Invariant Culture (The standard for XML)
             if (double.TryParse(input, NumberStyles.Any, CultureInfo.InvariantCulture, out double result))
                 return result;
 
-            // Try Current Culture (user's local Windows/Phone settings)
-            if (double.TryParse(input, NumberStyles.Any, CultureInfo.CurrentCulture, out result))
-                return result;
-
-            // Last Resort: Handle cases where data might have "wrong" separators (try manual cleaning).
-            var cleanedInput = input.Replace(',', '.');
-            if (double.TryParse(cleanedInput, NumberStyles.Any, CultureInfo.InvariantCulture, out result))
+            // Fallback to Current Culture (The user's local settings)
+            if (double.TryParse(val.Trim(), NumberStyles.Any, CultureInfo.CurrentCulture, out result))
                 return result;
 
             System.Diagnostics.Debug.WriteLine($"[Parser]: Failed to parse '{val}'");

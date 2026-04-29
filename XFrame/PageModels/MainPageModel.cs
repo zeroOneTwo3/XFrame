@@ -81,7 +81,7 @@ public partial class MainPageModel : ObservableObject
             var transformedXml = await Task.Run(() => _xmlProcessorService.Transform(RawXmlContent, XsltContent));
             if (transformedXml == null)
             {
-                _notificationService.HandleError("Empty transformation result", "XSLT Transformation Error");
+                _notificationService.HandleAlert("Empty transformation result", "XSLT Transformation Error");
                 return;
             }
 
@@ -96,7 +96,7 @@ public partial class MainPageModel : ObservableObject
     {
         if (string.IsNullOrWhiteSpace(TransformedResult))
         {
-            _notificationService.HandleError("Nothing to export. Run a transformation first.", "Export Error");
+            _notificationService.HandleAlert("Nothing to export. Run a transformation first.", "Export Error");
             return;
         }
 
@@ -106,7 +106,7 @@ public partial class MainPageModel : ObservableObject
 
             if (result.IsSuccessful)
             {
-                await _notificationService.ShowSuccessAsync($"File saved: {result.FilePath}", ct);
+                await _notificationService.ShowToastAsync($"File saved: {result.FilePath}", ct);
             }
         }, "Export Error");
     }
@@ -139,7 +139,7 @@ public partial class MainPageModel : ObservableObject
     {
         if (string.IsNullOrWhiteSpace(sourceContent))
         {
-            _notificationService.HandleError("Selected source is empty.", "Generic Sum Error");
+            _notificationService.HandleAlert("Selected source is empty.", "Generic Sum Error");
             return;
         }
 
@@ -157,13 +157,13 @@ public partial class MainPageModel : ObservableObject
 
             if (modifiedXmlString == null)
             {
-                _notificationService.HandleError($"No '{TargetParentTag}' tags found in the selected source.", "Generic Sum Error");
+                _notificationService.HandleAlert($"No '{TargetParentTag}' tags found in the selected source.", "Generic Sum Error");
                 return;
             }
 
             TransformedResult = modifiedXmlString;
             HasTransformedResult = true;
-            await _notificationService.ShowSuccessAsync($"Generic sum was added to the {TargetParentTag} tag.", ct);
+            await _notificationService.ShowToastAsync($"Generic sum was added to the {TargetParentTag} tag.", ct);
 
         }, "Generic Sum Error");
     }
@@ -179,8 +179,7 @@ public partial class MainPageModel : ObservableObject
             var allTags = await Task.Run(() => _xmlProcessorService.GetUniqueTags(sourceContent, ct));
             string tagsFound = string.Join(", ", allTags);
 
-            // TODO
-            await Shell.Current.DisplayAlertAsync("Tags Found", tagsFound, "OK");
+            _notificationService.HandleAlert("Tags Found", tagsFound);
         }
         catch (Exception ex)
         {

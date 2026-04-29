@@ -11,7 +11,7 @@ public class UiNotificationService : INotificationService
     SemaphoreSlim _semaphore = new(1, 1);
 
     /// <inheritdoc />
-    public async Task ShowSuccessAsync(string message, CancellationToken ct = default)
+    public async Task ShowToastAsync(string message, CancellationToken ct = default)
     {
         await MainThread.InvokeOnMainThreadAsync(async () =>
         {
@@ -27,9 +27,9 @@ public class UiNotificationService : INotificationService
     }
 
     /// <inheritdoc />
-    public void HandleError(string error, string? title = null)
+    public void HandleAlert(string message, string? title = null)
     {
-        DisplayAlertAsync(error, title).FireAndForgetSafeAsync();
+        DisplayAlertAsync(message, title).FireAndForgetSafeAsync();
     }
 
     async Task DisplayAlertAsync(string error, string? title = null)

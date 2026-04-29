@@ -1,28 +1,28 @@
 namespace XFrame.Services;
 
 /// <summary>
-/// Error Handler Service.
+/// Notification Handler Service.
 /// </summary>
 public interface INotificationService
 {
     /// <summary>
-    /// Handle error in UI.
+    /// Processes and displays a system exception, typically including diagnostic details.
     /// </summary>
     /// <param name="ex">Exception being thrown.</param>
     /// <param name="title">Error title.</param>
     void HandleError(Exception ex, string? title = null);
 
     /// <summary>
-    /// Handle error in UI.
+    /// Displays a notification or validation message.
     /// </summary>
     /// <param name="error">Error message.</param>
     /// <param name="title">Error title.</param>
-    void HandleError(string error, string? title = null);
+    void HandleAlert(string error, string? title = null);
 
     /// <summary>
-    /// Show success message in UI.
+    /// Displays a non-intrusive, brief message that dismisses automatically.
     /// </summary>
     /// <param name="message">Success message.</param>
     /// <param name="ct">Cancellation token.</param>
-    Task ShowSuccessAsync(string message, CancellationToken ct = default);
+    Task ShowToastAsync(string message, CancellationToken ct = default);
 }
