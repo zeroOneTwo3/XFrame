@@ -32,14 +32,14 @@ public class UiNotificationService : INotificationService
         DisplayAlertAsync(message, title).FireAndForgetSafeAsync();
     }
 
-    async Task DisplayAlertAsync(string error, string? title = null)
+    async Task DisplayAlertAsync(string message, string? title = null)
     {
         try
         {
             await _semaphore.WaitAsync();
 
             if (Shell.Current is Shell shell)
-                await shell.DisplayAlertAsync(title ?? "Error", error, "OK");
+                await shell.DisplayAlertAsync(title ?? "Error", message, "OK");
         }
         finally
         {
