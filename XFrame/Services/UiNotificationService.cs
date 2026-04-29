@@ -32,6 +32,11 @@ public class UiNotificationService : INotificationService
         DisplayAlertAsync(message, title).FireAndForgetSafeAsync();
     }
 
+    /// <summary>
+    /// Displays a modal alert dialog to the user.
+    /// </summary>
+    /// <param name="message">The content message to display.</param>
+    /// <param name="title">Optional header title for the alert.</param>
     async Task DisplayAlertAsync(string message, string? title = null)
     {
         try
@@ -39,7 +44,7 @@ public class UiNotificationService : INotificationService
             await _semaphore.WaitAsync();
 
             if (Shell.Current is Shell shell)
-                await shell.DisplayAlertAsync(title ?? "Error", message, "OK");
+                await shell.DisplayAlertAsync(title ?? "Notification", message, "OK");
         }
         finally
         {

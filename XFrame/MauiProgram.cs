@@ -14,7 +14,10 @@ public static class MauiProgram
         var builder = MauiApp.CreateBuilder();
         builder
             .UseMauiApp<App>()
-            .UseMauiCommunityToolkit(options => options.SetShouldEnableSnackbarOnWindows(true))
+            // Only use the toolkit on actual platforms, not the "plain library" target
+#if !NET10_0 || ANDROID || IOS || WINDOWS || MACCATALYST
+            .UseMauiCommunityToolkit()
+#endif
             .ConfigureSyncfusionToolkit()
             .ConfigureMauiHandlers(handlers =>
             {

@@ -53,17 +53,23 @@ public partial class MainPageModel : ObservableObject
     [RelayCommand]
     private async Task SelectXmlAsync()
     {
-        var content = await _fileService.PickAndReadTextAsync(FileTypes.Xml);
-        if (content != null)
-            RawXmlContent = content;
+        await ExecuteBusyActionAsync(async () =>
+        {
+            var content = await _fileService.PickAndReadTextAsync(FileTypes.Xml);
+            if (content != null)
+                RawXmlContent = content;
+        }, "Failed to load XML file.");
     }
 
     [RelayCommand]
     private async Task SelectXsltAsync()
     {
-        var content = await _fileService.PickAndReadTextAsync(FileTypes.Xslt);
-        if (content != null)
-            XsltContent = content;
+        await ExecuteBusyActionAsync(async () =>
+        {
+            var content = await _fileService.PickAndReadTextAsync(FileTypes.Xslt);
+            if (content != null)
+                XsltContent = content;
+        }, "Failed to load XML file.");
     }
 
     [RelayCommand]
@@ -187,9 +193,32 @@ public partial class MainPageModel : ObservableObject
         }
     }
 
+    /// <summary>
+    /// Runs actions with state management and error handling.
+    /// </summary>
+    /// <remarks>
+    /// This method implements several critical patterns:
+    /// <list type="bullet">
+    /// <item>
+    /// <description><b>Re-entrancy Guard:</b> Uses <see cref="IsBusy"/> as a semaphore to prevent multiple 
+    /// simultaneous executions of the same action (e.g., rapid button double-tapping).</description>
+    /// </item>
+    /// <item>
+    /// <description><b>Standardized Error Handling:</b> Automatically routes unhandled exceptions 
+    /// to the <c>_notificationService</c> and logs them to debug output.</description>
+    /// </item>
+    /// <item>
+    /// <description><b>Graceful Cancellation:</b> Specifically catches <see cref="OperationCanceledException"/> 
+    /// to allow for silent failures during user-cancelled tasks like file picking.</description>
+    /// </item>
+    /// </list>
+    /// </remarks>
+    /// <param name="action">The asynchronous task or logic to be executed.</param>
+    /// <param name="errorCaption">The localized title or context-specific header to show in the error dialog if the action fails.</param>
+    /// <returns>A <see cref="Task"/> representing the completion of the orchestrated action.</returns>
     private async Task ExecuteBusyActionAsync(Func<Task> action, string errorCaption = "Error")
     {
-        if (IsBusy)
+        if (IsBusy) // acts as a "semaphore," ensuring only one execution happens at a time
             return;
 
         IsBusy = true;

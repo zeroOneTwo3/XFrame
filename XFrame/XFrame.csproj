@@ -2,7 +2,8 @@
 
 	<PropertyGroup>
 		<TargetFrameworks Condition="$([MSBuild]::IsOSPlatform('windows'))">$(TargetFrameworks);net10.0-windows10.0.19041.0</TargetFrameworks>
-
+		<TargetFrameworks>$(TargetFrameworks);net10.0</TargetFrameworks>
+	
 		<!-- Note for MacCatalyst:
 		The default runtime is maccatalyst-x64, except in Release config, in which case the default is maccatalyst-x64;maccatalyst-arm64.
 		When specifying both architectures, use the plural <RuntimeIdentifiers> instead of the singular <RuntimeIdentifier>.
@@ -10,7 +11,12 @@
 		either BOTH runtimes must be indicated or ONLY macatalyst-x64. -->
 		<!-- For example: <RuntimeIdentifiers>maccatalyst-x64;maccatalyst-arm64</RuntimeIdentifiers> -->
 
-		<OutputType>Exe</OutputType>
+		<!-- If the framework name does NOT contain a hyphen (like 'net10.0'), it is a Library -->
+		<OutputType Condition="!$(TargetFramework.Contains('-'))">Library</OutputType>
+
+		<!-- If it DOES contain a hyphen (like 'net10.0-windows'), it is an Exe -->
+		<OutputType Condition="$(TargetFramework.Contains('-'))">Exe</OutputType>
+		
 		<RootNamespace>XFrame</RootNamespace>
 		<UseMaui>true</UseMaui>
 		<SingleProject>true</SingleProject>
