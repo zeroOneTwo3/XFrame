@@ -15,9 +15,9 @@ public interface INotificationService
     /// <summary>
     /// Displays a notification or validation message.
     /// </summary>
-    /// <param name="error">Error message.</param>
-    /// <param name="title">Error title.</param>
-    void HandleAlert(string error, string? title = null);
+    /// <param name="message">Message.</param>
+    /// <param name="title">Title.</param>
+    void HandleAlert(string message, string? title = null);
 
     /// <summary>
     /// Displays a non-intrusive, brief message that dismisses automatically.

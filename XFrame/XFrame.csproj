@@ -3,6 +3,7 @@
 	<PropertyGroup>
 		<TargetFrameworks Condition="$([MSBuild]::IsOSPlatform('windows'))">$(TargetFrameworks);net10.0-windows10.0.19041.0</TargetFrameworks>
 		<TargetFrameworks>$(TargetFrameworks);net10.0</TargetFrameworks>
+		<LangVersion>14.0</LangVersion>
 	
 		<!-- Note for MacCatalyst:
 		The default runtime is maccatalyst-x64, except in Release config, in which case the default is maccatalyst-x64;maccatalyst-arm64.
@@ -13,7 +14,6 @@
 
 		<!-- If the framework name does NOT contain a hyphen (like 'net10.0'), it is a Library -->
 		<OutputType Condition="!$(TargetFramework.Contains('-'))">Library</OutputType>
-
 		<!-- If it DOES contain a hyphen (like 'net10.0-windows'), it is an Exe -->
 		<OutputType Condition="$(TargetFramework.Contains('-'))">Exe</OutputType>
 		
@@ -88,6 +88,22 @@
 
 	<ItemGroup>
 	  <ProjectReference Include="..\XFrame.Core\XFrame.Core.csproj" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <Compile Update="Resources\AppResources.Designer.cs">
+	    <DesignTime>True</DesignTime>
+	    <AutoGen>True</AutoGen>
+	    <DependentUpon>AppResources.resx</DependentUpon>
+	  </Compile>
+	</ItemGroup>
+
+	<ItemGroup>
+	  <EmbeddedResource Update="Resources\AppResources.resx">
+	    <Generator>PublicResXFileCodeGenerator</Generator>
+	    <LastGenOutput>AppResources.Designer.cs</LastGenOutput>
+	    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+	  </EmbeddedResource>
 	</ItemGroup>
 	
 </Project>

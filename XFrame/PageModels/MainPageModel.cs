@@ -2,37 +2,38 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using XFrame.Configuration;
 using XFrame.Core.Interfaces;
+using XFrame.Resources;
 
 namespace XFrame.PageModels;
 
 public partial class MainPageModel : ObservableObject
 {
     [ObservableProperty]
-    private string rawXmlContent = string.Empty;
+    public partial string RawXmlContent { get; set; } = string.Empty;
 
     [ObservableProperty]
-    private string xsltContent = string.Empty;
+    public partial string XsltContent { get; set; } = string.Empty;
 
     [ObservableProperty]
-    private string transformedResult = string.Empty;
+    public partial string TransformedResult { get; set; } = string.Empty;
 
     [ObservableProperty]
-    private bool isBusy;
+    public partial bool IsBusy { get; set; }
 
     [ObservableProperty]
-    private bool hasTransformedResult;
+    public partial bool HasTransformedResult { get; set; }
 
     [ObservableProperty]
-    private string targetParentTag = "Employee";
+    public partial string TargetParentTag { get; set; }
 
     [ObservableProperty]
-    private string targetChildTag = "salary";
+    public partial string TargetChildTag { get; set; }
 
     [ObservableProperty]
-    private string targetAttribute = "amount";
+    public partial string TargetAttribute { get; set; }
 
     [ObservableProperty]
-    private string selectedSource = "Raw XML";
+    public partial string SelectedSource { get; set; } = AppResources.SourceRawXml;
 
     private readonly INotificationService _notificationService;
 
@@ -40,14 +41,22 @@ public partial class MainPageModel : ObservableObject
 
     private readonly IFileService _fileService;
 
+    private readonly ISettingsService _settingsService;
+
     public MainPageModel(
         INotificationService notificationService,
         IXmlProcessorService xmlProcessorService,
-        IFileService fileService)
+        IFileService fileService,
+        ISettingsService settingsService)
     {
         _notificationService = notificationService;
         _xmlProcessorService = xmlProcessorService;
         _fileService = fileService;
+        _settingsService = settingsService;
+
+        TargetParentTag = _settingsService.TargetParentTag;
+        TargetChildTag = _settingsService.TargetChildTag;
+        TargetAttribute = _settingsService.TargetAttribute;
     }
 
     [RelayCommand]
@@ -58,7 +67,7 @@ public partial class MainPageModel : ObservableObject
             var content = await _fileService.PickAndReadTextAsync(FileTypes.Xml);
             if (content != null)
                 RawXmlContent = content;
-        }, "Failed to load XML file.");
+        }, AppResources.SelectXmlErrorTitle);
     }
 
     [RelayCommand]
@@ -69,7 +78,7 @@ public partial class MainPageModel : ObservableObject
             var content = await _fileService.PickAndReadTextAsync(FileTypes.Xslt);
             if (content != null)
                 XsltContent = content;
-        }, "Failed to load XML file.");
+        }, AppResources.SelectXsltErrorTitle);
     }
 
     [RelayCommand]
@@ -87,14 +96,14 @@ public partial class MainPageModel : ObservableObject
             var transformedXml = await Task.Run(() => _xmlProcessorService.Transform(RawXmlContent, XsltContent));
             if (transformedXml == null)
             {
-                _notificationService.HandleAlert("Empty transformation result", "XSLT Transformation Error");
+                _notificationService.HandleAlert(AppResources.EmptyTransformationMessage, AppResources.TransformationFailedTitle);
                 return;
             }
 
             // Update the UI properties
             TransformedResult = transformedXml;
             HasTransformedResult = true;
-        }, "Transformation Failed");
+        }, AppResources.TransformationFailedTitle);
     }
 
     [RelayCommand]
@@ -102,19 +111,19 @@ public partial class MainPageModel : ObservableObject
     {
         if (string.IsNullOrWhiteSpace(TransformedResult))
         {
-            _notificationService.HandleAlert("Nothing to export. Run a transformation first.", "Export Error");
+            _notificationService.HandleAlert(AppResources.ExportEmptyMessage, AppResources.ExportErrorTitle);
             return;
         }
 
         await ExecuteBusyActionAsync(async () =>
         {
-            var result = await _fileService.SavePickAsync("transformed.xml", TransformedResult, ct);
+            var result = await _fileService.SavePickAsync(AppConstants.DefaultExportFileName, TransformedResult, ct);
 
             if (result.IsSuccessful)
             {
-                await _notificationService.ShowToastAsync($"File saved: {result.FilePath}", ct);
+                await _notificationService.ShowToastAsync(string.Format(AppResources.ExportSuccessMessage, result.FilePath), ct);
             }
-        }, "Export Error");
+        }, AppResources.ExportErrorTitle);
     }
 
     [RelayCommand]
@@ -131,12 +140,12 @@ public partial class MainPageModel : ObservableObject
     {
         try
         {
-            RawXmlContent = await _fileService.ReadAssetAsync("sample.xml");
-            XsltContent = await _fileService.ReadAssetAsync("transform.xslt");
+            RawXmlContent = await _fileService.ReadAssetAsync(AppConstants.Assets.SampleXml);
+            XsltContent = await _fileService.ReadAssetAsync(AppConstants.Assets.TransformXslt);
         }
         catch (Exception ex)
         {
-            _notificationService.HandleError(ex, "Load Samples Error");
+            _notificationService.HandleError(ex, AppResources.ErrorLoadSamples);
         }
     }
 
@@ -145,7 +154,7 @@ public partial class MainPageModel : ObservableObject
     {
         if (string.IsNullOrWhiteSpace(sourceContent))
         {
-            _notificationService.HandleAlert("Selected source is empty.", "Generic Sum Error");
+            _notificationService.HandleAlert(AppResources.EmptyContentMessage, AppResources.SumErrorTitle);
             return;
         }
 
@@ -163,15 +172,17 @@ public partial class MainPageModel : ObservableObject
 
             if (modifiedXmlString == null)
             {
-                _notificationService.HandleAlert($"No '{TargetParentTag}' tags found in the selected source.", "Generic Sum Error");
+                _notificationService.HandleAlert(
+                    string.Format(AppResources.NoTagsFoundMessage, TargetParentTag),
+                    AppResources.SumErrorTitle);
                 return;
             }
 
             TransformedResult = modifiedXmlString;
             HasTransformedResult = true;
-            await _notificationService.ShowToastAsync($"Generic sum was added to the {TargetParentTag} tag.", ct);
+            await _notificationService.ShowToastAsync(string.Format(AppResources.SumResultMessage, TargetParentTag), ct);
 
-        }, "Generic Sum Error");
+        }, AppResources.SumErrorTitle);
     }
 
     [RelayCommand]
@@ -182,14 +193,13 @@ public partial class MainPageModel : ObservableObject
 
         try
         {
-            var allTags = await Task.Run(() => _xmlProcessorService.GetUniqueTags(sourceContent, ct));
-            string tagsFound = string.Join(", ", allTags);
+            var tagsFound = await Task.Run(() => string.Join(", ", _xmlProcessorService.GetUniqueTags(sourceContent, ct)));
 
-            _notificationService.HandleAlert("Tags Found", tagsFound);
+            _notificationService.HandleAlert(tagsFound, AppResources.TagsFoundTitle);
         }
         catch (Exception ex)
         {
-            _notificationService.HandleError(ex, "Tags Error");
+            _notificationService.HandleError(ex, AppResources.TagsErrorTitle);
         }
     }
 

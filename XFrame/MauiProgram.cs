@@ -41,6 +41,7 @@ public static class MauiProgram
         builder.Services.AddLogging(configure => configure.AddDebug());
 #endif
         builder.Services.AddSingleton<IXmlProcessorService, XmlProcessorService>();
+        builder.Services.AddSingleton<ISettingsService, SettingsService>();
         builder.Services.AddSingleton<IFileService, FileService>();
         builder.Services.AddSingleton(FileSaver.Default);
         builder.Services.AddSingleton<INotificationService, UiNotificationService>();

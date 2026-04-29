@@ -17,8 +17,13 @@ public class MainPageModelTests
         _mockFileService = new Mock<IFileService>();
         _mockXmlService = new Mock<IXmlProcessorService>();
 
+        var settingsMock = new Mock<ISettingsService>();
+        settingsMock.Setup(s => s.TargetParentTag).Returns("Employee");
+        settingsMock.Setup(s => s.TargetChildTag).Returns("salary");
+        settingsMock.Setup(s => s.TargetAttribute).Returns("amount");
+
         // Inject the mocks into your ViewModel
-        _viewModel = new MainPageModel(_mockNotification.Object, _mockXmlService.Object, _mockFileService.Object);
+        _viewModel = new MainPageModel(_mockNotification.Object, _mockXmlService.Object, _mockFileService.Object, settingsMock.Object);
     }
 
     [Fact]

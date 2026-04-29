@@ -15,6 +15,8 @@ namespace XFrame.Core.Services
             OmitXmlDeclaration = false
         };
 
+        private const string TotalAttributeName = "total";
+
         /// <inheritdoc />
         public string? ProcessXmlSum(string xml, string parentTag, string childTag, string attribute)
         {
@@ -38,7 +40,7 @@ namespace XFrame.Core.Services
                         .Select(child => ParseAmount((string?)child.Attribute(attribute)))
                         .Sum();
 
-                    parent.SetAttributeValue("total", total.ToString("F2", CultureInfo.InvariantCulture));
+                    parent.SetAttributeValue(TotalAttributeName, total.ToString("F2", CultureInfo.InvariantCulture));
                 }
             }
 

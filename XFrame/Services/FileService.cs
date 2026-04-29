@@ -55,9 +55,14 @@ namespace XFrame.Services
             // Reset position so the FileSaver reads from the beginning
             stream.Position = 0;
 
+            // IFileSaver from the Community Toolkit uses APIs that are "Platform Dependent"
+#if WINDOWS || ANDROID || IOS || MACCATALYST
             var result = await _fileSaver.SaveAsync(defaultFileName, stream, ct);
 
             return new FileSaveResult(result.IsSuccessful, result.FilePath);
+#else
+            throw new PlatformNotSupportedException();
+#endif
         }
     }
 }
